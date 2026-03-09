@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getAuth, GoogleAuthProvider, browserLocalPersistence, setPersistence } from 'firebase/auth';
+import { initializeFirestore } from 'firebase/firestore';
 
 // import.meta.env를 통해 .env 파일의 값을 불러옵니다.
 const firebaseConfig = {
@@ -16,5 +16,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
+// Content Script 환경에서도 인증 상태를 유지하기 위해 browserLocalPersistence 사용
+setPersistence(auth, browserLocalPersistence).catch(() => { /* ignore */ });
 export const googleProvider = new GoogleAuthProvider();
-export const db = getFirestore(app);
+// 광고 차단기 등에 의한 ERR_BLOCKED_BY_CLIENT 방지를 위해 롱폴링 사용
+export const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+});

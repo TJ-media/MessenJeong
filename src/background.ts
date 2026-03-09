@@ -3,8 +3,9 @@
 
 console.log('[MessenJeong] Background service worker 시작됨');
 
-// 환경 변수에서 클라이언트 ID를 불러옵니다.
-const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+// manifest.json의 oauth2.client_id에서 클라이언트 ID를 불러옵니다.
+const manifest = chrome.runtime.getManifest() as { oauth2?: { client_id: string } };
+const CLIENT_ID = manifest.oauth2?.client_id || '';
 const SCOPES = 'openid email profile';
 
 chrome.runtime.onConnect.addListener((port) => {

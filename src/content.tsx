@@ -1,4 +1,3 @@
-import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import cssContent from './index.css?inline';
@@ -20,8 +19,5 @@ const appRoot = document.createElement('div');
 appRoot.id = 'messenjeong-app';
 shadow.appendChild(appRoot);
 
-createRoot(appRoot).render(
-    <StrictMode>
-        <App />
-    </StrictMode>
-);
+// StrictMode 제거 — Content Script에서 useEffect 이중 실행으로 인한 리스너 중복 방지
+createRoot(appRoot).render(<App />);

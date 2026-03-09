@@ -6,7 +6,8 @@ import {
     type User,
     GoogleAuthProvider,
 } from 'firebase/auth';
-import { auth } from '../config/firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, db } from '../config/firebase';
 
 interface AuthState {
     user: User | null;
@@ -17,25 +18,16 @@ interface AuthState {
     initAuth: () => () => void;
 }
 
-/** Port 기반 통신 — onDisconnect 핸들러와 타임아웃 추가 */
+/** Port 기반 통신 — onDisconnect 핸들러 */
 function sendPortMessage(message: { type: string }): Promise<{ success: boolean; token?: string; error?: string }> {
     return new Promise((resolve, reject) => {
         try {
             const port = chrome.runtime.connect({ name: 'messenjeong-auth' });
             let settled = false;
 
-            const timeout = setTimeout(() => {
-                if (!settled) {
-                    settled = true;
-                    port.disconnect();
-                    reject(new Error('Background 응답 시간 초과 (10초). Service Worker가 정상 동작하는지 확인하세요.'));
-                }
-            }, 10000);
-
             port.onMessage.addListener((response) => {
                 if (!settled) {
                     settled = true;
-                    clearTimeout(timeout);
                     resolve(response);
                     port.disconnect();
                 }
@@ -44,7 +36,6 @@ function sendPortMessage(message: { type: string }): Promise<{ success: boolean;
             port.onDisconnect.addListener(() => {
                 if (!settled) {
                     settled = true;
-                    clearTimeout(timeout);
                     const lastError = chrome.runtime.lastError?.message || 'Port가 연결 해제되었습니다. Background service worker를 확인하세요.';
                     reject(new Error(lastError));
                 }
@@ -55,6 +46,35 @@ function sendPortMessage(message: { type: string }): Promise<{ success: boolean;
             reject(error);
         }
     });
+}
+
+/** Firestore users 컬렉션에 사용자 정보 upsert */
+async function saveUserToFirestore(user: User) {
+    try {
+        await setDoc(doc(db, 'users', user.uid), {
+            uid: user.uid,
+            displayName: user.displayName || '익명',
+            email: user.email || '',
+            photoURL: user.photoURL || '',
+            updatedAt: serverTimestamp(),
+        }, { merge: true });
+    } catch (error) {
+        console.error('사용자 정보 저장 실패:', error);
+    }
+}
+
+/** chrome.storage.local에 토큰 저장/로드/삭제 */
+async function saveToken(token: string) {
+    try { await chrome.storage.local.set({ 'messenjeong-auth-token': token }); } catch { /* ignore */ }
+}
+async function loadToken(): Promise<string | null> {
+    try {
+        const result = await chrome.storage.local.get('messenjeong-auth-token');
+        return (result['messenjeong-auth-token'] as string) || null;
+    } catch { return null; }
+}
+async function removeToken() {
+    try { await chrome.storage.local.remove('messenjeong-auth-token'); } catch { /* ignore */ }
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -71,6 +91,9 @@ export const useAuthStore = create<AuthState>((set) => ({
                 throw new Error(response?.error || 'Background에서 토큰을 받지 못했습니다. manifest.json의 oauth2.client_id를 확인하세요.');
             }
 
+            // 토큰을 chrome.storage.local에 저장 (탭 간 공유)
+            await saveToken(response.token);
+
             // Firebase credential 생성 후 로그인
             const credential = GoogleAuthProvider.credential(null, response.token);
             await signInWithCredential(auth, credential);
@@ -83,8 +106,9 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     signOut: async () => {
         try {
-            // Background에 토큰 제거 요청 (Port 통신)
-            await sendPortMessage({ type: 'REMOVE_AUTH_TOKEN' });
+            // Background에 토큰 제거 요청 (Port 통신) — 실패해도 Firebase 로그아웃 진행
+            await sendPortMessage({ type: 'REMOVE_AUTH_TOKEN' }).catch(() => { });
+            await removeToken();
             await firebaseSignOut(auth);
         } catch (error) {
             console.error('로그아웃 실패:', error);
@@ -92,8 +116,26 @@ export const useAuthStore = create<AuthState>((set) => ({
     },
 
     initAuth: () => {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            set({ user, loading: false });
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                set({ user, loading: false });
+                saveUserToFirestore(user);
+            } else {
+                // Firebase 인증 없음 → chrome.storage에 저장된 토큰으로 자동 재인증 시도
+                const savedToken = await loadToken();
+                if (savedToken) {
+                    try {
+                        const credential = GoogleAuthProvider.credential(null, savedToken);
+                        await signInWithCredential(auth, credential);
+                        // onAuthStateChanged가 다시 호출되므로 여기서는 set 불필요
+                        return;
+                    } catch {
+                        // 토큰 만료 — 삭제 후 로그인 화면 표시
+                        await removeToken();
+                    }
+                }
+                set({ user: null, loading: false });
+            }
         });
         return unsubscribe;
     },
