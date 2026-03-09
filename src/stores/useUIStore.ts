@@ -14,6 +14,14 @@ const WIDGET_HEIGHT = 560;
 const MINIMIZED_WIDTH = 200;
 const MINIMIZED_HEIGHT = 28; // drag-header 높이
 
+interface ErrorScreenOptions {
+    title?: string;
+    message: string;
+    actionLabel?: string;
+    onAction?: () => void;
+    icon?: string;
+}
+
 interface UIState {
     opacity: number;
     visible: boolean;
@@ -23,6 +31,7 @@ interface UIState {
     currentView: ViewType;
     currentRoomId: string | null;
     toast: string | null;
+    errorScreen: ErrorScreenOptions | null;
     setOpacity: (value: number) => void;
     setVisible: (value: boolean) => void;
     setMinimized: (value: boolean) => void;
@@ -31,6 +40,8 @@ interface UIState {
     setCurrentRoomId: (roomId: string | null) => void;
     showToast: (message: string) => void;
     hideToast: () => void;
+    showErrorScreen: (options: ErrorScreenOptions) => void;
+    hideErrorScreen: () => void;
 }
 
 /** chrome.storage.local 기반 커스텀 스토리지 어댑터 */
@@ -70,6 +81,7 @@ export const useUIStore = create<UIState>()(
             currentView: 'roomList' as ViewType,
             currentRoomId: null,
             toast: null,
+            errorScreen: null,
             setOpacity: (value) => set({ opacity: value }),
             setVisible: (value) => set({ visible: value }),
             setMinimized: (value) => {
@@ -104,6 +116,8 @@ export const useUIStore = create<UIState>()(
                 setTimeout(() => set({ toast: null }), 4000);
             },
             hideToast: () => set({ toast: null }),
+            showErrorScreen: (options) => set({ errorScreen: options }),
+            hideErrorScreen: () => set({ errorScreen: null }),
         }),
         {
             name: 'messenjeong-ui',

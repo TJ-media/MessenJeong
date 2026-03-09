@@ -8,6 +8,7 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
+import { useUIStore } from './useUIStore';
 
 interface AuthState {
     user: User | null;
@@ -100,7 +101,18 @@ export const useAuthStore = create<AuthState>((set) => ({
         } catch (error) {
             const msg = error instanceof Error ? error.message : String(error);
             console.error('Google 로그인 실패:', msg);
-            set({ error: msg });
+
+            if (msg.includes('Extension context invalidated')) {
+                useUIStore.getState().showErrorScreen({
+                    icon: '🔄',
+                    title: '확장 프로그램이 업데이트되었습니다',
+                    message: '현재 웹페이지를 새로고침(F5) 해주세요.',
+                    actionLabel: '페이지 새로고침',
+                    onAction: () => window.location.reload(),
+                });
+            } else {
+                set({ error: msg });
+            }
         }
     },
 
