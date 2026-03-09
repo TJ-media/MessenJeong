@@ -1,73 +1,127 @@
-# React + TypeScript + Vite
+# 💬 MessenJeong (메신정)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+> **웹서핑의 흐름을 끊지 마세요!** 
+>
+> 어떤 웹페이지에서든 화면 위에 가볍게 띄워두고 소통할 수 있는 미니멀 플로팅 실시간 채팅 크롬 확장 프로그램입니다.
 
-Currently, two official plugins are available:
+![MessenJeong Preview](public/icon.png)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## ✨ 주요 기능 (Features)
+- 👻 **투명도 조절 오버레이:** 
 
-## React Compiler
+    작업 중인 웹페이지를 가리지 않도록 채팅창의 투명도를 자유롭게 조절할 수 있습니다.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- 📌 **자유로운 드래그 앤 드롭:** 
 
-## Expanding the ESLint configuration
+    채팅창 상단바를 잡아 원하는 위치로 언제든 이동시킬 수 있습니다.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- 🗂 **탭 전환 상태 유지:** 
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+    네이버에서 보던 채팅창 그대로, 유튜브 탭으로 넘어가도 위치와 상태가 동기화되어 유지됩니다.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- 💬 **다중 채팅방 지원:** 
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+    유저를 검색하여 1:1 채팅은 물론 여러 명과의 단체 그룹 채팅방을 생성할 수 있습니다.
+
+- ➖ **최소화 모드:** 
+
+    잠깐 채팅을 숨기고 싶을 땐 최소화 버튼으로 얇은 상단바 형태로 변경할 수 있습니다.
+
+- 🔐 **원클릭 구글 로그인:** 
+
+    복잡한 가입 없이 사용 중인 구글 계정으로 1초 만에 안전하게 로그인합니다.
+
+## 🛠 기술 스택 (Tech Stack)
+
+- **Frontend:** React (TypeScript), Vite
+- **Backend/DB:** Firebase (Auth, Firestore)
+- **State Management:** Zustand (with chrome.storage.local persistence)
+- **Platform:** Chrome Extension (Manifest V3 - Content Script)
+- **Styling:** CSS Variables (Dark/Light 테마 및 투명도 제어)
+
+---
+
+## 🚀 로컬 설치 및 실행 방법 (Installation & Usage)
+
+현재 크롬 웹스토어 정식 출시 전 심사 단계에 있습니다. 아래 절차를 따라 로컬에서 확장 프로그램을 직접 브라우저에 설치하고 테스트해 볼 수 있습니다.
+
+### 1. 사전 준비 (Prerequisites)
+- [Node.js](https://nodejs.org/) (v16 이상 권장)
+- Git
+
+### 2. 프로젝트 클론 및 패키지 설치
+터미널을 열고 아래 명령어를 순서대로 실행합니다.
+
+# 저장소 복제
+
+```
+git clone https://github.com/TJ-media/MessenJeong.git
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# 프로젝트 폴더로 이동
 ```
+cd MessenJeong
+```
+
+# 의존성 패키지 설치
+```
+npm install
+```
+
+
+### 3. 환경 변수 설정
+프로젝트 루트 폴더에 있는 .env.example 파일을 복사하여 .env 파일을 생성하고, Firebase 및 구글 OAuth 키값을 입력합니다.
+
+```
+cp .env.example .env
+```
+
+> **참고:** .env 파일에 발급받은 실제 API Key와 Client ID를 채워 넣어야 정상적으로 빌드 및 통신이 가능합니다.
+
+
+### 4. 확장 프로그램 빌드
+아래 명령어를 통해 크롬 확장 프로그램용 파일들을 생성합니다.
+
+```
+npm run build
+```
+
+명령어가 성공적으로 완료되면 프로젝트 폴더 내에 **dist** 라는 폴더가 생성됩니다. 이 폴더가 크롬에 등록할 실제 확장 프로그램 패키지입니다.
+
+
+### 5. 크롬 브라우저에 등록하기 (개발자 모드)
+1. 크롬 브라우저를 열고 주소창에 chrome://extensions/ 를 입력하여 확장 프로그램 관리 페이지로 이동합니다.
+2. 페이지 우측 상단에 있는 **개발자 모드(Developer mode)** 스위치를 켭니다.
+3. 좌측 상단에 새로 생긴 **[압축해제된 확장 프로그램을 로드합니다(Load unpacked)]** 버튼을 클릭합니다.
+4. 파일 선택 창이 뜨면, 방금 빌드해서 생성된 **dist** 폴더를 찾아 선택합니다.
+5. 확장 프로그램 목록에 MessenJeong 카드가 나타나면 설치가 완료된 것입니다!
+
+---
+
+## 💡 사용 방법 및 테스트 팁
+
+1. **테스트 페이지 열기:** 
+
+      구글, 네이버 등 평소 자주 사용하는 웹사이트를 엽니다. (이미 열려 있던 탭이라면 반드시 **새로고침(F5)**을 한 번 해주세요.)
+
+2. **로그인:** 
+
+    화면 우측 하단에 메신정 위젯이 나타나면 Google로 로그인 버튼을 클릭하여 로그인을 진행합니다.
+
+3. **채팅방 생성:** 
+
+    로그인 후 화면 상단의 새 채팅(연필/플러스 아이콘) 버튼을 누르고 다른 사용자의 이름이나 이메일을 검색하여 채팅방을 만듭니다.
+
+4. **기능 활용:** 
+
+    드래그 앤 드롭, 투명도 조절, 탭 간 이동 시 상태 유지 기능 등을 자유롭게 테스트해 보세요.
+
+> **🚨 주의 사항 (Error Handling)**
+
+  코드 수정 후 다시 npm run build 를 했다면, 크롬 확장 프로그램 페이지에서 메신정 카드의 **새로고침 🔄** 버튼을 누른 뒤, 테스트 중이던 **웹페이지 탭도 반드시 새로고침(F5)** 해야 합니다. 새로고침 하지 않으면 Extension context invalidated 에러가 발생합니다.
+
+---
+
+## 👨‍💻 개발자 (Developer)
+- **Oganesson12** (Taejeong)
+- 📝 프로젝트 피드백 및 버그 리포트는 Issue 탭에 남겨주세요!

@@ -1,14 +1,18 @@
 import { useEffect } from 'react';
 import { useAuthStore } from './stores/useAuthStore';
 import { useSettingsStore } from './stores/useSettingsStore';
+import { useUIStore } from './stores/useUIStore';
 import LoginScreen from './components/LoginScreen';
 import ChatApp from './components/ChatApp';
+import ErrorScreen from './components/ErrorScreen';
 
 export default function App() {
   const user = useAuthStore((s) => s.user);
   const loading = useAuthStore((s) => s.loading);
   const initAuth = useAuthStore((s) => s.initAuth);
   const theme = useSettingsStore((s) => s.theme);
+  const errorScreen = useUIStore((s) => s.errorScreen);
+  const hideErrorScreen = useUIStore((s) => s.hideErrorScreen);
 
   useEffect(() => {
     const unsubscribe = initAuth();
@@ -33,5 +37,18 @@ export default function App() {
     );
   }
 
-  return user ? <ChatApp /> : <LoginScreen />;
+  return (
+    <>
+      {user ? <ChatApp /> : <LoginScreen />}
+      {errorScreen && (
+        <ErrorScreen
+          title={errorScreen.title}
+          message={errorScreen.message}
+          icon={errorScreen.icon}
+          actionLabel={errorScreen.actionLabel ?? '닫기'}
+          onAction={errorScreen.onAction ?? hideErrorScreen}
+        />
+      )}
+    </>
+  );
 }
