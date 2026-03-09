@@ -1,0 +1,33 @@
+{
+    "manifest_version": 3,
+    "name": "메신정 (MessenJeong)",
+    "version": "1.0.0",
+    "description": "미니멀 플로팅 실시간 채팅 익스텐션",
+    "permissions": [
+        "storage",
+        "identity"
+    ],
+    "oauth2": {
+        "client_id": "132654974209-nt72vllf2t1lq71lmsvm2qln5hl3g832.apps.googleusercontent.com",
+        "scopes": [
+            "openid",
+            "email",
+            "profile"
+        ]
+    },
+    "background": {
+        "service_worker": "assets/background.js",
+        "type": "module"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "<all_urls>"
+            ],
+            "js": [
+                "assets/content.js"
+            ],
+            "run_at": "document_idle"
+        }
+    ]
+}
