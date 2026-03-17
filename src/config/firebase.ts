@@ -1,8 +1,8 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, browserLocalPersistence, setPersistence } from 'firebase/auth';
-import { initializeFirestore } from 'firebase/firestore';
+// getAuth를 지우고, initializeAuth와 browserLocalPersistence를 가져옵니다.
+import { initializeAuth, browserLocalPersistence } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
 
-// import.meta.env를 통해 .env 파일의 값을 불러옵니다.
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -15,11 +15,10 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-export const auth = getAuth(app);
-// Content Script 환경에서도 인증 상태를 유지하기 위해 browserLocalPersistence 사용
-setPersistence(auth, browserLocalPersistence).catch(() => { /* ignore */ });
-export const googleProvider = new GoogleAuthProvider();
-// 광고 차단기 등에 의한 ERR_BLOCKED_BY_CLIENT 방지를 위해 롱폴링 사용
-export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
+// 기존: export const auth = getAuth(app);
+// 변경: 외부 스크립트(popupRedirectResolver)를 뺀 가벼운 인증 모듈로 초기화
+export const auth = initializeAuth(app, {
+  persistence: browserLocalPersistence,
 });
+
+export const db = getFirestore(app);

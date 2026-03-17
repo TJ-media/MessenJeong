@@ -44,7 +44,10 @@ interface UIState {
     hideErrorScreen: () => void;
 }
 
-/** chrome.storage.local 기반 커스텀 스토리지 어댑터 */
+/**
+ * chrome.storage.local 기반 커스텀 스토리지 어댑터
+ * → manifest.json "storage" 권한 필요 (UI 상태 persist: 위치, 투명도, 뷰 상태 등)
+ */
 const chromeStorageAdapter = createJSONStorage<UIState>(() => ({
     getItem: async (name: string): Promise<string | null> => {
         try {

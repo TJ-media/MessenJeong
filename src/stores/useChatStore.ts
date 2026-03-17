@@ -65,7 +65,10 @@ interface ChatState {
     subscribeUnreadCounts: (uid: string) => () => void;
 }
 
-/** 마지막 읽은 시간 관리 (chrome.storage.local) */
+/**
+ * 마지막 읽은 시간 관리 (chrome.storage.local)
+ * → manifest.json "storage" 권한 필요 (읽지 않은 메시지 카운트 계산용)
+ */
 async function getLastReadTimes(): Promise<Record<string, number>> {
     try {
         const result = await chrome.storage.local.get('messenjeong-last-read');

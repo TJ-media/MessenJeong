@@ -64,7 +64,10 @@ async function saveUserToFirestore(user: User) {
     }
 }
 
-/** chrome.storage.local에 토큰 저장/로드/삭제 */
+/**
+ * chrome.storage.local에 인증 토큰 저장/로드/삭제
+ * → manifest.json "storage" 권한 필요 (탭 간 인증 상태 공유 목적)
+ */
 async function saveToken(token: string) {
     try { await chrome.storage.local.set({ 'messenjeong-auth-token': token }); } catch { /* ignore */ }
 }

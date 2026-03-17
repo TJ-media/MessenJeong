@@ -1,10 +1,10 @@
 # 💬 MessenJeong (메신정)
 
+> ![MessenJeong Preview](public/icon.png)
+>
 > **웹서핑의 흐름을 끊지 마세요!** 
 >
 > 어떤 웹페이지에서든 화면 위에 가볍게 띄워두고 소통할 수 있는 미니멀 플로팅 실시간 채팅 크롬 확장 프로그램입니다.
-
-![MessenJeong Preview](public/icon.png)
 
 ## ✨ 주요 기능 (Features)
 - 👻 **투명도 조절 오버레이:** 

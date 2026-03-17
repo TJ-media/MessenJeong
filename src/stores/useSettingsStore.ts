@@ -12,6 +12,10 @@ interface SettingsState {
     setTheme: (theme: ThemeType) => void;
 }
 
+/**
+ * chrome.storage.local 기반 설정 스토리지 어댑터
+ * → manifest.json "storage" 권한 필요 (사용자 설정 persist: 테마, 알림, 자동 최소화 등)
+ */
 const chromeSettingsStorage = createJSONStorage<SettingsState>(() => ({
     getItem: async (name: string): Promise<string | null> => {
         try {
