@@ -801,6 +801,13 @@
   flex: 1;
 }
 
+.messages__loading-older {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+
 .message__image:hover {
   opacity: 0.85;
   transform: scale(1.02);

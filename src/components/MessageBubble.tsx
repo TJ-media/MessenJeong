@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Timestamp } from 'firebase/firestore';
 import { useUIStore } from '../stores/useUIStore';
+import { getCachedImageURL, cacheImage } from '../utils/imageCache';
 
 interface MessageBubbleProps {
     text: string;
@@ -21,10 +22,35 @@ export default function MessageBubble({
 }: MessageBubbleProps) {
     const openImageViewer = useUIStore((s) => s.openImageViewer);
     const [imgLoaded, setImgLoaded] = useState(!imageURL);
+    const [displayImageURL, setDisplayImageURL] = useState(imageURL || '');
+
+    // 이미지 캐시 확인 → 캐시 hit이면 blob URL 사용
+    useEffect(() => {
+        if (!imageURL) return;
+        let revoke: string | null = null;
+        getCachedImageURL(imageURL).then((cachedURL) => {
+            if (cachedURL) {
+                revoke = cachedURL;
+                setDisplayImageURL(cachedURL);
+            }
+        });
+        return () => {
+            if (revoke) URL.revokeObjectURL(revoke);
+        };
+    }, [imageURL]);
+
+    const handleImageLoad = () => {
+        setImgLoaded(true);
+        // 로드 완료 후 백그라운드에서 캐싱
+        if (imageURL) cacheImage(imageURL);
+    };
 
     const formatTime = (ts: Timestamp | null) => {
         if (!ts) return '';
-        const date = ts.toDate();
+        // 캐시에서 복원된 Timestamp는 일반 객체이므로 toDate()가 없을 수 있음
+        const date = typeof ts.toDate === 'function'
+            ? ts.toDate()
+            : new Date((ts as unknown as { seconds: number }).seconds * 1000);
         return date.toLocaleTimeString('ko-KR', {
             hour: '2-digit',
             minute: '2-digit',
@@ -47,10 +73,10 @@ export default function MessageBubble({
                     {imageURL && (
                         <img
                             className={`message__image ${imgLoaded ? 'message__image--loaded' : 'message__image--loading'}`}
-                            src={imageURL}
+                            src={displayImageURL}
                             alt="전송된 이미지"
                             onClick={() => openImageViewer(imageURL)}
-                            onLoad={() => setImgLoaded(true)}
+                            onLoad={handleImageLoad}
                         />
                     )}
                     {text && <p className="message__text">{text}</p>}

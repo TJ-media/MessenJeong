@@ -51,7 +51,9 @@ export default function RoomList() {
 
     const formatTime = (ts: Timestamp | null) => {
         if (!ts) return '';
-        const date = ts.toDate();
+        const date = typeof ts.toDate === 'function'
+            ? ts.toDate()
+            : new Date((ts as unknown as { seconds: number }).seconds * 1000);
         const now = new Date();
         const isToday = date.toDateString() === now.toDateString();
         if (isToday) {

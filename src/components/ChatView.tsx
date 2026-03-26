@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useLayoutEffect } from 'react';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useChatStore } from '../stores/useChatStore';
 import { useUIStore } from '../stores/useUIStore';
@@ -16,7 +16,10 @@ export default function ChatView() {
     const user = useAuthStore((s) => s.user);
     const messages = useChatStore((s) => s.messages);
     const messagesLoading = useChatStore((s) => s.messagesLoading);
+    const hasMoreMessages = useChatStore((s) => s.hasMoreMessages);
+    const loadingOlder = useChatStore((s) => s.loadingOlder);
     const subscribeRoomMessages = useChatStore((s) => s.subscribeRoomMessages);
+    const loadOlderMessages = useChatStore((s) => s.loadOlderMessages);
     const sendMessage = useChatStore((s) => s.sendMessage);
     const uploadImage = useChatStore((s) => s.uploadImage);
     const sendImageMessage = useChatStore((s) => s.sendImageMessage);
@@ -33,8 +36,11 @@ export default function ChatView() {
     const [confirmPreview, setConfirmPreview] = useState<string | null>(null);
     const [pendingUploads, setPendingUploads] = useState<PendingUpload[]>([]);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const messagesContainerRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const dragCounterRef = useRef(0);
+    const prevMsgCountRef = useRef(0);
+    const initialScrollDone = useRef(false);
 
     // 현재 방 정보
     const currentRoom = rooms.find((r) => r.id === currentRoomId);
@@ -50,15 +56,62 @@ export default function ChatView() {
     // 메시지 구독
     useEffect(() => {
         if (!currentRoomId) return;
+        initialScrollDone.current = false;
+        prevMsgCountRef.current = 0;
         markAsRead(currentRoomId);
         const unsubscribe = subscribeRoomMessages(currentRoomId);
         return () => unsubscribe();
     }, [currentRoomId, subscribeRoomMessages, markAsRead]);
 
-    // 최신 메시지로 자동 스크롤
+    // 초기 로드 시 맨 아래로 스크롤 (한 번만)
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages, pendingUploads]);
+        if (!messagesLoading && messages.length > 0 && !initialScrollDone.current) {
+            initialScrollDone.current = true;
+            prevMsgCountRef.current = messages.length;
+            messagesEndRef.current?.scrollIntoView();
+        }
+    }, [messagesLoading, messages.length]);
+
+    // 새 메시지 도착 시: 맨 아래에 있었거나 내가 보낸 메시지면 자동 스크롤
+    useEffect(() => {
+        if (!initialScrollDone.current) return;
+        const container = messagesContainerRef.current;
+        if (!container) return;
+        const prevCount = prevMsgCountRef.current;
+        const newCount = messages.length;
+        if (newCount > prevCount && prevCount > 0) {
+            // 새 메시지가 뒤에 추가된 경우 (앞에 추가된 건 이전 메시지 로드)
+            const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+            if (isAtBottom) {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+        prevMsgCountRef.current = newCount;
+    }, [messages.length]);
+
+    // 이전 메시지 로드 후 스크롤 위치 보존
+    const prevScrollHeightRef = useRef(0);
+    useLayoutEffect(() => {
+        const container = messagesContainerRef.current;
+        if (!container) return;
+        if (prevScrollHeightRef.current > 0) {
+            const diff = container.scrollHeight - prevScrollHeightRef.current;
+            if (diff > 0) {
+                container.scrollTop += diff;
+            }
+        }
+        prevScrollHeightRef.current = 0;
+    }, [messages]);
+
+    // 위로 스크롤 감지 → 이전 메시지 로드
+    const handleMessagesScroll = useCallback(() => {
+        const container = messagesContainerRef.current;
+        if (!container || !currentRoomId) return;
+        if (container.scrollTop < 100 && hasMoreMessages && !loadingOlder) {
+            prevScrollHeightRef.current = container.scrollHeight;
+            loadOlderMessages(currentRoomId);
+        }
+    }, [currentRoomId, hasMoreMessages, loadingOlder, loadOlderMessages]);
 
     const handleSend = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -238,7 +291,13 @@ export default function ChatView() {
             </div>
 
             {/* 메시지 목록 */}
-            <div className="messages">
+            <div className="messages" ref={messagesContainerRef} onScroll={handleMessagesScroll}>
+                {/* 이전 메시지 로딩 스피너 */}
+                {loadingOlder && (
+                    <div className="messages__loading-older">
+                        <div className="loading-screen__spinner" />
+                    </div>
+                )}
                 {messagesLoading && (
                     <div className="messages__loading">
                         <div className="loading-screen__spinner" />

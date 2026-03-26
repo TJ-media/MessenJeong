@@ -12,9 +12,13 @@ import {
     doc,
     updateDoc,
     limit,
+    startAfter,
+    endBefore,
+    limitToLast,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../config/firebase';
+import { getCachedMessages, setCachedMessages } from '../utils/messageCache';
 
 export interface Message {
     id: string;
@@ -50,10 +54,13 @@ interface ChatState {
     messages: Message[];
     roomsLoading: boolean;
     messagesLoading: boolean;
+    hasMoreMessages: boolean;
+    loadingOlder: boolean;
     unreadCounts: Record<string, number>;
     totalUnread: number;
     subscribeRooms: (uid: string) => () => void;
     subscribeRoomMessages: (roomId: string) => () => void;
+    loadOlderMessages: (roomId: string) => Promise<void>;
     sendMessage: (roomId: string, text: string, uid: string, displayName: string, photoURL: string) => Promise<void>;
     uploadImage: (roomId: string, file: File) => Promise<string>;
     sendImageMessage: (roomId: string, imageURL: string, uid: string, displayName: string, photoURL: string) => Promise<void>;
@@ -85,11 +92,15 @@ async function setLastReadTime(roomId: string) {
     try { await chrome.storage.local.set({ 'messenjeong-last-read': times }); } catch { /* ignore */ }
 }
 
-export const useChatStore = create<ChatState>((set) => ({
+const PAGE_SIZE = 30;
+
+export const useChatStore = create<ChatState>((set, get) => ({
     rooms: [],
     messages: [],
     roomsLoading: true,
     messagesLoading: true,
+    hasMoreMessages: true,
+    loadingOlder: false,
     unreadCounts: {},
     totalUnread: 0,
 
@@ -113,22 +124,123 @@ export const useChatStore = create<ChatState>((set) => ({
     },
 
     subscribeRoomMessages: (roomId: string) => {
-        set({ messagesLoading: true });
-        const q = query(
-            collection(db, 'chatRooms', roomId, 'messages'),
-            orderBy('createdAt', 'asc')
-        );
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const msgs: Message[] = snapshot.docs.map((d) => ({
+        set({ messagesLoading: true, hasMoreMessages: true, messages: [] });
+
+        // 1. 캐시 우선 로드 — 즉시 표시
+        getCachedMessages(roomId).then((cached) => {
+            if (cached.length > 0) {
+                set({ messages: cached, messagesLoading: false });
+            }
+        });
+
+        let unsubscribe: (() => void) | null = null;
+
+        // 2. 최신 PAGE_SIZE개 초기 로드 후 → 실시간 구독
+        const init = async () => {
+            try {
+                const initialQuery = query(
+                    collection(db, 'chatRooms', roomId, 'messages'),
+                    orderBy('createdAt', 'desc'),
+                    limit(PAGE_SIZE)
+                );
+                const snapshot = await getDocs(initialQuery);
+                const msgs: Message[] = snapshot.docs
+                    .map((d) => ({ id: d.id, ...d.data() } as Message))
+                    .reverse(); // 시간순 정렬
+
+                set({
+                    messages: msgs,
+                    messagesLoading: false,
+                    hasMoreMessages: snapshot.docs.length >= PAGE_SIZE,
+                });
+
+                // 캐시 갱신
+                setCachedMessages(roomId, msgs);
+
+                // 3. 마지막 메시지 이후의 새 메시지만 실시간 구독
+                const lastDoc = snapshot.docs.length > 0 ? snapshot.docs[0] : null; // desc 정렬이므로 docs[0]이 최신
+                const realtimeQuery = lastDoc
+                    ? query(
+                          collection(db, 'chatRooms', roomId, 'messages'),
+                          orderBy('createdAt', 'asc'),
+                          startAfter(lastDoc)
+                      )
+                    : query(
+                          collection(db, 'chatRooms', roomId, 'messages'),
+                          orderBy('createdAt', 'asc')
+                      );
+
+                unsubscribe = onSnapshot(realtimeQuery, (snap) => {
+                    if (snap.empty) return;
+                    const newMsgs: Message[] = snap.docs.map((d) => ({
+                        id: d.id,
+                        ...d.data(),
+                    } as Message));
+                    set((state) => {
+                        // 중복 제거
+                        const existingIds = new Set(state.messages.map((m) => m.id));
+                        const unique = newMsgs.filter((m) => !existingIds.has(m.id));
+                        if (unique.length === 0) return state;
+                        const merged = [...state.messages, ...unique];
+                        // 캐시 갱신 (최신 PAGE_SIZE개만)
+                        setCachedMessages(roomId, merged.slice(-PAGE_SIZE));
+                        return { messages: merged };
+                    });
+                }, (error) => {
+                    console.error('실시간 메시지 구독 실패:', error);
+                });
+            } catch (error) {
+                console.error('초기 메시지 로드 실패:', error);
+                set({ messagesLoading: false });
+            }
+        };
+
+        init();
+
+        return () => {
+            if (unsubscribe) unsubscribe();
+        };
+    },
+
+    loadOlderMessages: async (roomId: string) => {
+        const { messages, loadingOlder, hasMoreMessages } = get();
+        if (loadingOlder || !hasMoreMessages || messages.length === 0) return;
+
+        set({ loadingOlder: true });
+
+        try {
+            const oldest = messages[0];
+            // createdAt이 없는 경우 (serverTimestamp 미적용) 건너뜀
+            if (!oldest.createdAt) {
+                set({ loadingOlder: false, hasMoreMessages: false });
+                return;
+            }
+
+            const olderQuery = query(
+                collection(db, 'chatRooms', roomId, 'messages'),
+                orderBy('createdAt', 'asc'),
+                endBefore(oldest.createdAt),
+                limitToLast(PAGE_SIZE)
+            );
+            const snapshot = await getDocs(olderQuery);
+            const olderMsgs: Message[] = snapshot.docs.map((d) => ({
                 id: d.id,
                 ...d.data(),
-            })) as Message[];
-            set({ messages: msgs, messagesLoading: false });
-        }, (error) => {
-            console.error('메시지 구독 실패:', error);
-            set({ messagesLoading: false });
-        });
-        return unsubscribe;
+            } as Message));
+
+            set((state) => {
+                const existingIds = new Set(state.messages.map((m) => m.id));
+                const unique = olderMsgs.filter((m) => !existingIds.has(m.id));
+                return {
+                    messages: [...unique, ...state.messages],
+                    hasMoreMessages: snapshot.docs.length >= PAGE_SIZE,
+                    loadingOlder: false,
+                };
+            });
+        } catch (error) {
+            console.error('이전 메시지 로드 실패:', error);
+            set({ loadingOlder: false });
+        }
     },
 
     sendMessage: async (roomId, text, uid, displayName, photoURL) => {
