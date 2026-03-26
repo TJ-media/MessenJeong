@@ -14,6 +14,13 @@ const WIDGET_HEIGHT = 560;
 const MINIMIZED_WIDTH = 200;
 const MINIMIZED_HEIGHT = 28; // drag-header 높이
 
+/** 우상단 기본 위치 계산 — window.innerWidth가 0인 경우(content script 조기 실행) 안전하게 처리 */
+function getDefaultPosition(): Position {
+    const vw = window.innerWidth;
+    const x = vw > WIDGET_WIDTH + 40 ? vw - WIDGET_WIDTH - 20 : 20;
+    return { x, y: 20 };
+}
+
 interface ErrorScreenOptions {
     title?: string;
     message: string;
@@ -79,7 +86,7 @@ export const useUIStore = create<UIState>()(
             opacity: 1,
             visible: true,
             isMinimized: false,
-            position: { x: window.innerWidth - WIDGET_WIDTH - 20, y: 20 },
+            position: getDefaultPosition(),
             expandedPosition: null,
             currentView: 'roomList' as ViewType,
             currentRoomId: null,

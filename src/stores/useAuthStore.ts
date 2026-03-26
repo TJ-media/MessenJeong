@@ -134,6 +134,8 @@ export const useAuthStore = create<AuthState>((set) => ({
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
                 set({ user, loading: false });
+                // 로그인 성공 시 위젯 표시 보장 (이전에 닫기로 visible=false가 persist된 경우 복원)
+                useUIStore.getState().setVisible(true);
                 saveUserToFirestore(user);
             } else {
                 // Firebase 인증 없음 → chrome.storage에 저장된 토큰으로 자동 재인증 시도

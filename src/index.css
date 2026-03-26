@@ -239,6 +239,24 @@
 }
 
 /* ═══════════════════════════════════════════════
+   Widget Wrapper — 로그인/로딩 화면 고정 위치 래퍼
+   ═══════════════════════════════════════════════ */
+
+.widget-wrapper {
+  position: fixed;
+  z-index: 2147483647;
+  width: 380px;
+  height: 560px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+/* ═══════════════════════════════════════════════
    Chat Container
    ═══════════════════════════════════════════════ */
 
@@ -254,6 +272,7 @@
   box-shadow: var(--shadow-lg);
   overflow: hidden;
   resize: both;
+  pointer-events: auto;
 }
 
 /* ═══════════════════════════════════════════════

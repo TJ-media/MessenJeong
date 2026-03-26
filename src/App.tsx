@@ -11,6 +11,7 @@ export default function App() {
   const loading = useAuthStore((s) => s.loading);
   const initAuth = useAuthStore((s) => s.initAuth);
   const theme = useSettingsStore((s) => s.theme);
+  const position = useUIStore((s) => s.position);
   const errorScreen = useUIStore((s) => s.errorScreen);
   const hideErrorScreen = useUIStore((s) => s.hideErrorScreen);
 
@@ -30,16 +31,41 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="loading-screen">
-        <div className="loading-screen__spinner" />
-        <p>로딩 중...</p>
+      <div
+        className="widget-wrapper"
+        style={{ left: `${position.x}px`, top: `${position.y}px` }}
+      >
+        <div className="loading-screen">
+          <div className="loading-screen__spinner" />
+          <p>로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div
+        className="widget-wrapper"
+        style={{ left: `${position.x}px`, top: `${position.y}px` }}
+      >
+        <LoginScreen />
+        {errorScreen && (
+          <ErrorScreen
+            title={errorScreen.title}
+            message={errorScreen.message}
+            icon={errorScreen.icon}
+            actionLabel={errorScreen.actionLabel ?? '닫기'}
+            onAction={errorScreen.onAction ?? hideErrorScreen}
+          />
+        )}
       </div>
     );
   }
 
   return (
     <>
-      {user ? <ChatApp /> : <LoginScreen />}
+      <ChatApp />
       {errorScreen && (
         <ErrorScreen
           title={errorScreen.title}
