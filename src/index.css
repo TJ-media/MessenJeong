@@ -599,6 +599,364 @@
 }
 
 /* ═══════════════════════════════════════════════
+   Input Bar — Attach button
+   ═══════════════════════════════════════════════ */
+
+.input-bar__attach {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+
+.input-bar__attach:hover {
+  background: var(--bg-glass-hover);
+  color: var(--accent);
+}
+
+.input-bar__attach:active {
+  transform: scale(0.92);
+}
+
+/* ═══════════════════════════════════════════════
+   Drop Overlay — 드래그 앤 드롭 영역
+   ═══════════════════════════════════════════════ */
+
+.drop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(99, 102, 241, 0.15);
+  border: 2px dashed var(--accent);
+  border-radius: var(--radius-md);
+  animation: fadeIn 0.2s ease-out;
+  pointer-events: none;
+}
+
+.drop-overlay__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.drop-overlay__icon {
+  font-size: 40px;
+  animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.drop-overlay__text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* ═══════════════════════════════════════════════
+   Confirm Modal — 이미지 전송 확인
+   ═══════════════════════════════════════════════ */
+
+.confirm-modal {
+  width: 85%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: fadeUp 0.3s ease-out;
+}
+
+.confirm-modal__header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.confirm-modal__header h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.confirm-modal__body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+}
+
+.confirm-modal__preview {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+}
+
+.confirm-modal__filename {
+  font-size: 12px;
+  color: var(--text-muted);
+  word-break: break-all;
+  text-align: center;
+}
+
+.confirm-modal__actions {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-subtle);
+  justify-content: flex-end;
+}
+
+.confirm-modal__btn {
+  padding: 8px 20px;
+  border: none;
+  border-radius: var(--radius-full);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.confirm-modal__btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.confirm-modal__btn--cancel {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.confirm-modal__btn--cancel:hover:not(:disabled) {
+  background: var(--bg-glass-hover);
+}
+
+.confirm-modal__btn--send {
+  background: var(--accent);
+  color: #fff;
+}
+
+.confirm-modal__btn--send:hover:not(:disabled) {
+  background: var(--accent-hover);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+/* ═══════════════════════════════════════════════
+   Message Image — 채팅 내 이미지 썸네일
+   ═══════════════════════════════════════════════ */
+
+.message__image {
+  max-width: 200px;
+  max-height: 200px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  cursor: pointer;
+  transition: opacity 0.3s ease, transform 0.2s ease;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.message__image--loading {
+  width: 0;
+  height: 0;
+  opacity: 0;
+  margin: 0;
+  overflow: hidden;
+}
+
+.message__image--loaded {
+  opacity: 1;
+  animation: imgFadeIn 0.3s ease-out;
+}
+
+@keyframes imgFadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.messages__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  flex: 1;
+}
+
+.message__image:hover {
+  opacity: 0.85;
+  transform: scale(1.02);
+}
+
+.message__image--failed {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.message__image--failed:hover {
+  opacity: 0.5;
+  transform: none;
+}
+
+.message__bubble--pending {
+  padding: 6px;
+}
+
+/* ═══════════════════════════════════════════════
+   Pending Image — 업로드 중 / 실패 상태
+   ═══════════════════════════════════════════════ */
+
+.pending-image {
+  position: relative;
+  display: inline-flex;
+}
+
+.pending-image__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: var(--radius-sm);
+}
+
+.pending-image__spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.pending-image__cancel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 80, 80, 0.7);
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.pending-image__cancel:hover {
+  background: rgba(255, 80, 80, 0.95);
+  transform: scale(1.1);
+}
+
+.pending-image__actions {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.45);
+  border-radius: var(--radius-sm);
+}
+
+.pending-image__btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: #fff;
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.pending-image__btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.pending-image__btn--delete:hover {
+  background: rgba(255, 80, 80, 0.4);
+}
+
+/* ═══════════════════════════════════════════════
+   Image Viewer — 원본 이미지 뷰어 오버레이
+   ═══════════════════════════════════════════════ */
+
+.image-viewer {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.85);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.image-viewer__img {
+  max-width: 95%;
+  max-height: 90%;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+  animation: fadeUp 0.3s ease-out;
+}
+
+.image-viewer__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  cursor: pointer;
+  transition: var(--transition);
+  z-index: 101;
+}
+
+.image-viewer__close:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+/* ═══════════════════════════════════════════════
    Drag Header — Actions area + Minimize button
    ═══════════════════════════════════════════════ */
 

@@ -39,6 +39,7 @@ interface UIState {
     currentRoomId: string | null;
     toast: string | null;
     errorScreen: ErrorScreenOptions | null;
+    imageViewerURL: string | null;
     setOpacity: (value: number) => void;
     setVisible: (value: boolean) => void;
     setMinimized: (value: boolean) => void;
@@ -49,6 +50,8 @@ interface UIState {
     hideToast: () => void;
     showErrorScreen: (options: ErrorScreenOptions) => void;
     hideErrorScreen: () => void;
+    openImageViewer: (url: string) => void;
+    closeImageViewer: () => void;
 }
 
 /**
@@ -92,6 +95,7 @@ export const useUIStore = create<UIState>()(
             currentRoomId: null,
             toast: null,
             errorScreen: null,
+            imageViewerURL: null,
             setOpacity: (value) => set({ opacity: value }),
             setVisible: (value) => set({ visible: value }),
             setMinimized: (value) => {
@@ -128,10 +132,23 @@ export const useUIStore = create<UIState>()(
             hideToast: () => set({ toast: null }),
             showErrorScreen: (options) => set({ errorScreen: options }),
             hideErrorScreen: () => set({ errorScreen: null }),
+            openImageViewer: (url) => set({ imageViewerURL: url }),
+            closeImageViewer: () => set({ imageViewerURL: null }),
         }),
         {
             name: 'messenjeong-ui',
+            version: 1,
             storage: chromeStorageAdapter,
+            migrate: (persistedState, version) => {
+                const state = persistedState as Record<string, unknown>;
+                if (version === 0) {
+                    // v0 → v1: 위치와 최소화 상태 초기화 (우상단 기본 위치로 복구)
+                    state.position = getDefaultPosition();
+                    state.isMinimized = false;
+                    state.expandedPosition = null;
+                }
+                return state as unknown as UIState;
+            },
             partialize: (state) => ({
                 opacity: state.opacity,
                 visible: state.visible,

@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { Timestamp } from 'firebase/firestore';
+import { useUIStore } from '../stores/useUIStore';
 
 interface MessageBubbleProps {
     text: string;
@@ -6,6 +8,7 @@ interface MessageBubbleProps {
     photoURL: string;
     createdAt: Timestamp | null;
     isOwn: boolean;
+    imageURL?: string;
 }
 
 export default function MessageBubble({
@@ -14,7 +17,11 @@ export default function MessageBubble({
     photoURL,
     createdAt,
     isOwn,
+    imageURL,
 }: MessageBubbleProps) {
+    const openImageViewer = useUIStore((s) => s.openImageViewer);
+    const [imgLoaded, setImgLoaded] = useState(!imageURL);
+
     const formatTime = (ts: Timestamp | null) => {
         if (!ts) return '';
         const date = ts.toDate();
@@ -37,7 +44,16 @@ export default function MessageBubble({
             <div className="message__content">
                 {!isOwn && <span className="message__name">{displayName}</span>}
                 <div className="message__bubble">
-                    <p className="message__text">{text}</p>
+                    {imageURL && (
+                        <img
+                            className={`message__image ${imgLoaded ? 'message__image--loaded' : 'message__image--loading'}`}
+                            src={imageURL}
+                            alt="전송된 이미지"
+                            onClick={() => openImageViewer(imageURL)}
+                            onLoad={() => setImgLoaded(true)}
+                        />
+                    )}
+                    {text && <p className="message__text">{text}</p>}
                 </div>
                 <span className="message__time">{formatTime(createdAt)}</span>
             </div>

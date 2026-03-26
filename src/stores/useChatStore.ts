@@ -13,7 +13,8 @@ import {
     updateDoc,
     limit,
 } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../config/firebase';
 
 export interface Message {
     id: string;
@@ -22,6 +23,7 @@ export interface Message {
     displayName: string;
     photoURL: string;
     createdAt: Timestamp | null;
+    imageURL?: string;
 }
 
 export interface ChatRoom {
@@ -53,6 +55,8 @@ interface ChatState {
     subscribeRooms: (uid: string) => () => void;
     subscribeRoomMessages: (roomId: string) => () => void;
     sendMessage: (roomId: string, text: string, uid: string, displayName: string, photoURL: string) => Promise<void>;
+    uploadImage: (roomId: string, file: File) => Promise<string>;
+    sendImageMessage: (roomId: string, imageURL: string, uid: string, displayName: string, photoURL: string) => Promise<void>;
     createRoom: (
         type: 'single' | 'group',
         participants: string[],
@@ -145,6 +149,34 @@ export const useChatStore = create<ChatState>((set) => ({
             });
         } catch (error) {
             console.error('메시지 전송 실패:', error);
+        }
+    },
+
+    uploadImage: async (roomId, file) => {
+        const timestamp = Date.now();
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const storageRef = ref(storage, `chatImages/${roomId}/${timestamp}_${safeName}`);
+        const snapshot = await uploadBytes(storageRef, file);
+        return await getDownloadURL(snapshot.ref);
+    },
+
+    sendImageMessage: async (roomId, imageURL, uid, displayName, photoURL) => {
+        try {
+            await addDoc(collection(db, 'chatRooms', roomId, 'messages'), {
+                text: '',
+                imageURL,
+                uid,
+                displayName,
+                photoURL,
+                createdAt: serverTimestamp(),
+            });
+            await updateDoc(doc(db, 'chatRooms', roomId), {
+                lastMessage: '📷 사진',
+                lastMessageAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+            });
+        } catch (error) {
+            console.error('이미지 메시지 전송 실패:', error);
         }
     },
 

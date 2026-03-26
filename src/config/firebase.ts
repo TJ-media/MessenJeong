@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app';
 // getAuth를 지우고, initializeAuth와 browserLocalPersistence를 가져옵니다.
 import { initializeAuth, browserLocalPersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -22,3 +23,4 @@ export const auth = initializeAuth(app, {
 });
 
 export const db = getFirestore(app);
+export const storage = getStorage(app);

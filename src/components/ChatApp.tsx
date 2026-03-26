@@ -6,6 +6,7 @@ import ChatView from './ChatView';
 import SettingsView from './SettingsView';
 import OpacitySlider from './OpacitySlider';
 import Toast from './Toast';
+import ImageViewer from './ImageViewer';
 
 export default function ChatApp() {
     const user = useAuthStore((s) => s.user);
@@ -71,6 +72,7 @@ export default function ChatApp() {
             )}
 
             <Toast />
+            <ImageViewer />
         </div>
     );
 }
